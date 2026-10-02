@@ -505,7 +505,7 @@ if fetch:
             "API": "Open-Meteo",
             "Target": "All Sites",
             "Cache Hit": w_res["from_cache"],
-            "Status": "Cached" if w_res["from_cache"] else w_res["status"],
+            "Status": "Cached" if w_res["from_cache"] else str(w_res["status"]),
         })
 
         # Soil requests
@@ -518,7 +518,7 @@ if fetch:
                     "API": "SoilGrids",
                     "Target": req["label"],
                     "Cache Hit": res["from_cache"],
-                    "Status": "Cached" if res["from_cache"] else res["status"],
+                    "Status": "Cached" if res["from_cache"] else str(res["status"]),
                 })
             except requests.RequestException as exc:
                 raise RuntimeError(
