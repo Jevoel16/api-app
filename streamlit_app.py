@@ -137,7 +137,7 @@ def send(req):
         text = path.read_text(encoding="utf-8")
         return {"status": None, "from_cache": True, "data": json.loads(text)}
 
-    r = http_session().get(req["url"], params=req["params"], timeout=60)
+    r = http_session().get(req["url"], params=req["params"], timeout=300)
     r.raise_for_status()
     data = r.json()
     CACHE_DIR.mkdir(exist_ok=True)
