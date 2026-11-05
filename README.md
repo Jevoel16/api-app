@@ -19,10 +19,10 @@
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-1.0.1-green?style=flat)
+![Version](https://img.shields.io/badge/version-1.0.2-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
-[![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Jevoel16/api-app/ci.yml?branch=main&label=CI&style=flat)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
 
 </div>
 
