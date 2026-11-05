@@ -16,8 +16,10 @@
 ![pandas](https://img.shields.io/badge/pandas-3.0.0-blue?style=flat)
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
+![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
+![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.2.2-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.2.3-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -70,8 +72,9 @@ You can run either:
 - **Depth dimension:** queries SoilGrids at `0-5cm`, `5-15cm` and `15-30cm` to show how soil texture changes down the profile.
 - **Weather forecasts:** combines historical archive data with the 16-day Open-Meteo forecast.
 - **Uncertainty tracking:** fetches the `Q0.05` and `Q0.95` percentiles from SoilGrids and shows them as error bars.
-- **Data export:** download raw CSV datasets directly from the browser.
-- **API log:** every upstream call is listed with provider, site, cache status (Cached/Live) and timing.
+- **Data export:** download the site summary, daily records and soil profile as CSV (properly quoted) directly from the browser.
+- **API log:** every upstream call is listed with provider, site, real HTTP status, cache status (Cached/Live) and timing.
+- **Clear errors:** validation and upstream failures from the backend appear in a dismissible banner; the site list is loaded from `GET /api/sites`.
 - Charts: temperature trend (7-day rolling mean), monthly rainfall vs evaporative demand, daily rainfall distribution, topsoil texture, depth profile, clay vs water balance, spatial distribution.
 
 <p align="right"><a href="#top">back to top ↑</a></p>
@@ -84,7 +87,8 @@ You can run either:
 | --- | --- |
 | Baseline app | Python, Streamlit, Plotly, pandas, NumPy, requests |
 | Backend | Python, FastAPI, Uvicorn, pandas, NumPy, requests, Pydantic |
-| Frontend | Next.js (App Router), React, TypeScript, Tailwind CSS, Plotly.js (`react-plotly.js`), axios, lucide-react |
+| Frontend | Next.js (App Router), React, TypeScript, Tailwind CSS, Plotly.js (`react-plotly.js`), lucide-react, native `fetch` |
+| Testing | pytest + FastAPI `TestClient` + Streamlit `AppTest` (Python), Vitest (frontend) |
 | Data sources | [Open-Meteo](https://open-meteo.com/) (archive + forecast), [SoilGrids v2.0 REST API (ISRIC)](https://rest.isric.org/) |
 | CI | GitHub Actions (see [Testing](#testing)) |
 
@@ -149,7 +153,7 @@ No API keys are needed: both Open-Meteo and SoilGrids are free, keyless APIs. Py
 | Setting | Where | Value |
 | --- | --- | --- |
 | Sites, API URLs, variables, timezone | [`core/sources.py`](core/sources.py) | Five Mindanao sites, `Asia/Manila` |
-| Backend URL used by the frontend | `frontend/src/app/page.tsx` | `http://127.0.0.1:8000/api/integrate` |
+| Backend URL used by the frontend | `NEXT_PUBLIC_API_URL` in `frontend/.env.local` (see [`frontend/.env.example`](frontend/.env.example)) | `http://127.0.0.1:8000` |
 | Streamlit theme | `.streamlit/config.toml` | Light theme, teal primary colour |
 
 Delete the files in the cache folder to force fresh API calls.
@@ -237,7 +241,11 @@ api-app/
 │   │   └── schemas.py      # Pydantic request/response models
 │   └── requirements.txt    # Backend Python dependencies
 ├── frontend/
-│   ├── src/app/            # Next.js App Router pages, layout, styles
+│   ├── src/app/            # Next.js App Router page (state + layout), root layout, styles
+│   ├── src/components/     # Sidebar, tabs, banners and one file per chart (charts/)
+│   ├── src/lib/            # API client, types, CSV export, stats helpers (+ *.test.ts)
+│   ├── vitest.config.mts   # Vitest configuration
+│   ├── .env.example        # NEXT_PUBLIC_API_URL
 │   ├── public/             # Static assets
 │   └── package.json        # Frontend scripts and dependencies
 ├── VERSION                 # Project version (kept in sync with frontend/package.json)
@@ -259,6 +267,8 @@ api-app/
 | `npm run build` | `frontend/` | Production build (includes type-checking) |
 | `npm run start` | `frontend/` | Serve the production build |
 | `npm run lint` | `frontend/` | Run ESLint |
+| `npm test` | `frontend/` | Run the Vitest unit tests |
+| `python -m pytest` | root | Run the Python test suite |
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -273,7 +283,13 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors), the integration pipeline, the API (response shape, 422 validation, 502 on upstream failure, CORS) and the Streamlit app (rendered headlessly with Streamlit's `AppTest`).
+Frontend unit tests (Vitest) cover the API client and its error messages, CSV escaping and the chart statistics helpers:
+
+```bash
+cd frontend && npm test
+```
+
+The Python tests cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors), the integration pipeline, the API (response shape, 422 validation, 502 on upstream failure, CORS) and the Streamlit app (rendered headlessly with Streamlit's `AppTest`).
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
 
@@ -283,7 +299,7 @@ They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache 
 Run the same checks locally before committing:
 
 ```bash
-cd frontend && npm ci && npm run lint && npm run build
+cd frontend && npm ci && npm run lint && npm test && npm run build
 ```
 
 ```bash
@@ -308,7 +324,7 @@ Manual checks:
 
 | Problem | Fix |
 | --- | --- |
-| Frontend shows a network error | Make sure the backend is running on `127.0.0.1:8000` before clicking run. If the frontend runs on another origin or port, add it to `CORS_ORIGINS`. |
+| "Cannot reach the backend" banner | Make sure the backend is running on `127.0.0.1:8000` (or set `NEXT_PUBLIC_API_URL`). If the frontend runs on another origin or port, add it to `CORS_ORIGINS`. Reload the page so the site list loads. |
 | Backend returns 422 | Check the message: site names must match exactly, dates must be `YYYY-MM-DD`, start ≤ end, and end not in the future. |
 | First run is very slow | Live SoilGrids calls are spaced 12 s apart to respect fair use; later runs use the cache. |
 | HTTP 429 / 5xx from an API | Requests retry automatically with backoff; wait and try again. |
