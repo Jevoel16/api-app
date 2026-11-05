@@ -65,4 +65,4 @@ npm run dev
 - [SoilGrids v2.0 REST API (ISRIC)](https://rest.isric.org/)
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Sprucetrap Source-Available License 1.0 - see the [LICENSE](LICENSE) file for details.
