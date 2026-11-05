@@ -58,4 +58,4 @@ jobs:
 
       # No test suite yet: catch syntax errors in the backend and Streamlit app
       - name: Compile check
-        run: python -m compileall -q backend/main.py streamlit_app.py
+        run: python -m compileall -q core backend streamlit_app.py

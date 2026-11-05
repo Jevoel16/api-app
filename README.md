@@ -17,7 +17,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.2.0-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.2.1-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -171,12 +171,11 @@ Open http://localhost:8501, then follow the app step by step: inputs → request
 
 The app is split, so run the backend and frontend at the same time in two terminals.
 
-**Terminal 1 – backend (FastAPI):**
+**Terminal 1 – backend (FastAPI), from the repo root:**
 
 ```bash
 .venv\Scripts\activate
-cd backend
-uvicorn main:app --reload
+uvicorn backend.app.main:app --reload
 ```
 
 **Terminal 2 – frontend (Next.js):**
@@ -190,6 +189,12 @@ Open http://localhost:3000, choose sites and a date range under **Configure & Ru
 
 #### Calling the API directly
 
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/health` | Liveness check, returns `{"status": "ok", "version": "…"}` |
+| `GET /api/sites` | The five study sites with coordinates |
+| `POST /api/integrate` | Fetch, join and summarise weather + soil for chosen sites and dates |
+
 `POST /api/integrate` on http://127.0.0.1:8000:
 
 ```bash
@@ -198,9 +203,9 @@ curl -X POST http://127.0.0.1:8000/api/integrate \
   -d '{"sites": ["Iligan City", "Malaybalay"], "start_date": "2025-01-01", "end_date": "2025-06-30"}'
 ```
 
-The response holds `daily`, `summary`, `soil_long`, `active_sites` and `api_logs`. Interactive docs are at http://127.0.0.1:8000/docs.
+The response holds `daily`, `summary`, `soil_long`, `active_sites` and `api_logs`; every field is typed in the OpenAPI schema at http://127.0.0.1:8000/docs. Soil values are in standard units (clay/sand/silt in %, pH, SOC in g/kg). Each `api_logs` entry has the real HTTP `status` of a live call, or `null` when it was served from cache.
 
-Invalid input returns **422 Unprocessable Entity** with a message: an empty or unknown `sites` list, dates not in `YYYY-MM-DD` format, `start_date` after `end_date`, or an `end_date` in the future (the 16-day forecast is added automatically).
+Invalid input returns **422 Unprocessable Entity** with a message: an empty or unknown `sites` list, dates not in `YYYY-MM-DD` format, `start_date` after `end_date`, or an `end_date` in the future (the 16-day forecast is added automatically). If Open-Meteo or SoilGrids fails, the API returns **502 Bad Gateway** with the upstream message.
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -225,9 +230,11 @@ api-app/
 ├── pyproject.toml          # pytest configuration
 ├── .env.example            # Optional settings
 ├── backend/
-│   ├── main.py             # FastAPI app: fetch, parse, join, summarise
-│   ├── requirements.txt    # Backend Python dependencies
-│   └── cache/              # Backend disk cache (JSON, gitignored)
+│   ├── app/
+│   │   ├── main.py         # FastAPI app factory, CORS, error handling
+│   │   ├── routes.py       # /api/health, /api/sites, /api/integrate
+│   │   └── schemas.py      # Pydantic request/response models
+│   └── requirements.txt    # Backend Python dependencies
 ├── frontend/
 │   ├── src/app/            # Next.js App Router pages, layout, styles
 │   ├── public/             # Static assets
@@ -246,7 +253,7 @@ api-app/
 | Command | Where | What it does |
 | --- | --- | --- |
 | `streamlit run streamlit_app.py` | root | Start the baseline app on port 8501 |
-| `uvicorn main:app --reload` | `backend/` | Start the API on port 8000 with auto-reload |
+| `uvicorn backend.app.main:app --reload` | root | Start the API on port 8000 with auto-reload |
 | `npm run dev` | `frontend/` | Start the Next.js dev server on port 3000 |
 | `npm run build` | `frontend/` | Production build (includes type-checking) |
 | `npm run start` | `frontend/` | Serve the production build |
@@ -265,12 +272,12 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors) and the integration pipeline.
+They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors), the integration pipeline and the API (response shape, 422 validation, 502 on upstream failure, CORS).
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
 
 - **Frontend:** `npm ci`, `npm run lint`, `npm run build` (includes the TypeScript check) on Node 22.
-- **Python:** installs both requirements files and runs a compile check on `backend/main.py` and `streamlit_app.py` on Python 3.13.
+- **Python:** installs both requirements files and runs a compile check on `core/`, `backend/` and `streamlit_app.py` on Python 3.13.
 
 Run the same checks locally before committing:
 
@@ -279,13 +286,13 @@ cd frontend && npm ci && npm run lint && npm run build
 ```
 
 ```bash
-python -m compileall -q backend/main.py streamlit_app.py
+python -m compileall -q core backend streamlit_app.py
 ```
 
 Manual checks:
 
 1. `streamlit run streamlit_app.py` loads and every step renders for the default sites.
-2. Backend starts and http://127.0.0.1:8000/docs lists `POST /api/integrate`.
+2. Backend starts and http://127.0.0.1:8000/docs lists `/api/health`, `/api/sites` and `/api/integrate`.
 3. The `curl` request above returns JSON with all five keys.
 4. Frontend at http://localhost:3000 renders all charts for the selected sites.
 5. Re-running the same request shows **Cached** in the API log.
@@ -304,7 +311,9 @@ Manual checks:
 | Backend returns 422 | Check the message: site names must match exactly, dates must be `YYYY-MM-DD`, start ≤ end, and end not in the future. |
 | First run is very slow | Live SoilGrids calls are spaced 12 s apart to respect fair use; later runs use the cache. |
 | HTTP 429 / 5xx from an API | Requests retry automatically with backoff; wait and try again. |
-| Stale or odd data | Forecasts refresh on their own after 3 hours. For anything else, delete the JSON files in `cache/` or `backend/cache/` and rerun. |
+| Stale or odd data | Forecasts refresh on their own after 3 hours. For anything else, delete the JSON files in `cache/` and rerun. |
+| Backend returns 502 | Open-Meteo or SoilGrids failed after retries (SoilGrids is a beta service and is sometimes paused). The message says which; try again later. |
+| `ModuleNotFoundError: core` / `backend` | Start uvicorn from the repo root, not from `backend/`. |
 | `uvicorn` / `streamlit` not found | Activate the virtual environment and reinstall the requirements. |
 | Port already in use | Stop the other process on 3000 / 8000 / 8501, or pass another port (`--port`, `-p`). |
 
