@@ -17,7 +17,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.1.6-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.1.7-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -195,6 +195,8 @@ curl -X POST http://127.0.0.1:8000/api/integrate \
 
 The response holds `daily`, `summary`, `soil_long`, `active_sites` and `api_logs`. Interactive docs are at http://127.0.0.1:8000/docs.
 
+Invalid input returns **422 Unprocessable Entity** with a message: an empty or unknown `sites` list, dates not in `YYYY-MM-DD` format, `start_date` after `end_date`, or an `end_date` in the future (the 16-day forecast is added automatically).
+
 <p align="right"><a href="#top">back to top ↑</a></p>
 
 ---
@@ -275,6 +277,7 @@ Manual checks:
 | Problem | Fix |
 | --- | --- |
 | Frontend shows a network error | Make sure the backend is running on `127.0.0.1:8000` before clicking run. |
+| Backend returns 422 | Check the message: site names must match exactly, dates must be `YYYY-MM-DD`, start ≤ end, and end not in the future. |
 | First run is very slow | Live SoilGrids calls are spaced 12 s apart to respect fair use; later runs use the cache. |
 | HTTP 429 / 5xx from an API | Requests retry automatically with backoff; wait and try again. |
 | Stale or odd data | Forecasts refresh on their own after 3 hours. For anything else, delete the JSON files in `cache/` or `backend/cache/` and rerun. |

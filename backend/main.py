@@ -12,7 +12,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 # ==========================================
 # STEP 0: API & Server Configuration
@@ -131,9 +131,18 @@ def parse_soil(raw: dict, site_name: str) -> pd.DataFrame:
     return pd.DataFrame(res)
 
 class IntegrationRequest(BaseModel):
-    sites: List[str]
-    start_date: str
-    end_date: str
+    sites: List[str] = Field(min_length=1)
+    start_date: date
+    end_date: date
+
+    @model_validator(mode="after")
+    def check_date_range(self):
+        # The archive API rejects reversed or future ranges; fail early with a clear 422
+        if self.start_date > self.end_date:
+            raise ValueError("start_date must be on or before end_date")
+        if self.end_date > date.today():
+            raise ValueError("end_date cannot be in the future (forecasts are added automatically)")
+        return self
 
 @app.post("/api/integrate")
 def integrate_data(req: IntegrationRequest):
@@ -145,6 +154,12 @@ def integrate_data(req: IntegrationRequest):
     # ==========================================
     # STEP 1: Filter Active Sites
     # ==========================================
+    unknown = sorted(set(req.sites) - set(SITES["site"]))
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown site(s): {', '.join(unknown)}. Valid sites: {', '.join(SITES['site'])}",
+        )
     active_sites = SITES[SITES["site"].isin(req.sites)].reset_index(drop=True)
     
     # ==========================================
@@ -158,8 +173,8 @@ def integrate_data(req: IntegrationRequest):
         w_arch_params = {
             "latitude": str(row["lat"]),
             "longitude": str(row["lon"]),
-            "start_date": req.start_date,
-            "end_date": req.end_date,
+            "start_date": req.start_date.isoformat(),
+            "end_date": req.end_date.isoformat(),
             "daily": ",".join(DAILY_VARS),
             "timezone": TIMEZONE,
         }
