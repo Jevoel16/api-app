@@ -17,7 +17,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.1.9-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.2.0-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -135,22 +135,23 @@ npm install
 
 ## Configuration
 
-No API keys are needed: both Open-Meteo and SoilGrids are free, keyless APIs. One optional environment variable exists:
+No API keys are needed: both Open-Meteo and SoilGrids are free, keyless APIs. Python settings live in [`core/config.py`](core/config.py) and can be overridden with environment variables or a root `.env` file (copy [`.env.example`](.env.example)):
 
-| Variable | Used by | Default | Purpose |
-| --- | --- | --- | --- |
-| `CORS_ORIGINS` | `backend/main.py` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated list of origins allowed to call the API from a browser |
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `CACHE_DIR` | `./cache` | Disk cache for API responses (one JSON file per unique request, gitignored) |
+| `FORECAST_TTL_S` | `10800` (3 h) | Age after which cached forecasts are refetched; archive and soil responses never expire |
+| `SOILGRIDS_PAUSE_S` | `12` | Pause between live SoilGrids calls (fair use) |
+| `HTTP_TIMEOUT_S` | `300` | Timeout for one upstream request |
+| `CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated origins allowed to call the backend |
 
 | Setting | Where | Value |
 | --- | --- | --- |
-| Disk cache | `cache/` (Streamlit), `backend/cache/` (FastAPI), both next to their app file and gitignored | One JSON file per unique request |
-| Forecast cache lifetime | `FORECAST_TTL_S` in `backend/main.py` | 3 hours (archive and soil responses never expire) |
-| SoilGrids fair-use pause | `SOILGRIDS_PAUSE_S` in `streamlit_app.py` and `backend/main.py` | 12 s between live SoilGrids calls |
-| Timezone | `TIMEZONE` in `backend/main.py` | `Asia/Manila` |
+| Sites, API URLs, variables, timezone | [`core/sources.py`](core/sources.py) | Five Mindanao sites, `Asia/Manila` |
 | Backend URL used by the frontend | `frontend/src/app/page.tsx` | `http://127.0.0.1:8000/api/integrate` |
 | Streamlit theme | `.streamlit/config.toml` | Light theme, teal primary colour |
 
-Delete the files in a cache folder to force fresh API calls.
+Delete the files in the cache folder to force fresh API calls.
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -212,7 +213,17 @@ api-app/
 ├── streamlit_app.py        # Baseline Streamlit app
 ├── requirements.txt        # Baseline Python dependencies
 ├── .streamlit/config.toml  # Streamlit theme
-├── cache/                  # Baseline disk cache (JSON, gitignored)
+├── core/                   # Shared data core used by the backend and Streamlit
+│   ├── config.py           # Settings from env / .env
+│   ├── sources.py          # Sites, API URLs, requested variables
+│   ├── http.py             # Retrying HTTP client + disk cache
+│   ├── parsing.py          # Open-Meteo / SoilGrids JSON → DataFrames
+│   └── pipeline.py         # Fetch, join and summarise
+├── tests/                  # pytest suite + trimmed API fixtures
+├── cache/                  # Disk cache (JSON, gitignored)
+├── requirements-dev.txt    # Test dependencies (pytest, httpx)
+├── pyproject.toml          # pytest configuration
+├── .env.example            # Optional settings
 ├── backend/
 │   ├── main.py             # FastAPI app: fetch, parse, join, summarise
 │   ├── requirements.txt    # Backend Python dependencies
@@ -247,7 +258,16 @@ api-app/
 
 ## Testing
 
-There is no automated test suite yet. **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
+Python tests live in [`tests/`](tests) and run offline against trimmed real API responses in `tests/fixtures/`:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors) and the integration pipeline.
+
+**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
 
 - **Frontend:** `npm ci`, `npm run lint`, `npm run build` (includes the TypeScript check) on Node 22.
 - **Python:** installs both requirements files and runs a compile check on `backend/main.py` and `streamlit_app.py` on Python 3.13.

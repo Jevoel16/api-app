@@ -3,6 +3,8 @@ __pycache__/
 node_modules/
 .env
 .env.*
+!.env.example
+.pytest_cache/
 
 # Local Claude settings and personal instructions
 .claude/

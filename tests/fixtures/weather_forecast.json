@@ -1,0 +1,27 @@
+{
+ "latitude": 6.1511426,
+ "longitude": 125.11278,
+ "timezone": "Asia/Manila",
+ "daily": {
+  "time": [
+   "2026-10-02",
+   "2026-10-03",
+   "2026-10-04"
+  ],
+  "temperature_2m_mean": [
+   26.9,
+   26.7,
+   26.6
+  ],
+  "precipitation_sum": [
+   2.0,
+   3.3,
+   3.7
+  ],
+  "et0_fao_evapotranspiration": [
+   4.4,
+   4.35,
+   4.2
+  ]
+ }
+}
