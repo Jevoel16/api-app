@@ -11,15 +11,15 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=flat)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-blue?style=flat)
 ![Plotly.js](https://img.shields.io/badge/Plotly.js-4.1.1-blue?style=flat)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-blue?style=flat)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.64.0-blue?style=flat)
-![pandas](https://img.shields.io/badge/pandas-3.0.0-blue?style=flat)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.162.0-blue?style=flat)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.66.1-blue?style=flat)
+![pandas](https://img.shields.io/badge/pandas-3.1.1-blue?style=flat)
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.2.4-green?style=flat)
+![Version](https://img.shields.io/badge/version-1.0.0-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -31,6 +31,7 @@
 ## Table of contents
 
 - [About](#about)
+- [What's new in 1.0.0](#whats-new-in-100)
 - [Features](#features)
 - [Tech stack](#tech-stack)
 - [Prerequisites](#prerequisites)
@@ -55,6 +56,21 @@ You can run either:
 
 - **Option 1 – Baseline version:** a lightweight Streamlit monolith (`streamlit_app.py`).
 - **Option 2 – Advanced version:** a full-stack FastAPI backend (`backend/`) with a Next.js frontend (`frontend/`).
+
+<p align="right"><a href="#top">back to top ↑</a></p>
+
+---
+
+## What's new in 1.0.0
+
+The first stable release restructures the project around one shared, tested data core.
+
+- **Shared `core/` package** for settings, HTTP + disk cache, parsers and the join pipeline, used by both the FastAPI backend and the Streamlit app, so they now report identical numbers.
+- **Soil unit fix:** the FastAPI version used to skip SoilGrids' `d_factor`, so clay/sand/silt were shown 10× too large (g/kg instead of %), and pH and SOC were 10× too large as well. CSV exports from earlier versions of the advanced app carry those unscaled values.
+- **Backend** split into `backend/app/` with typed response models, new `GET /api/sites` and `GET /api/health`, real HTTP statuses in the API log, and 502 on upstream failures. It now starts from the repo root: `uvicorn backend.app.main:app`.
+- **Frontend** split into components and `lib/` helpers, native `fetch` instead of axios, `NEXT_PUBLIC_API_URL`, error banner instead of `alert()`, correct CSV quoting, and a soil-profile CSV export.
+- **Tests:** 32 pytest tests and 18 Vitest tests, both run in CI.
+- One disk cache at `cache/` (the old `backend/cache/` folder is no longer used and can be deleted).
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -132,6 +148,12 @@ pip install -r requirements.txt
 pip install -r backend/requirements.txt
 cd frontend
 npm install
+```
+
+**For development and tests (both versions):**
+
+```bash
+pip install -r requirements-dev.txt
 ```
 
 <p align="right"><a href="#top">back to top ↑</a></p>
@@ -342,7 +364,9 @@ Manual checks:
 
 - **Branches:** `feat/short-description`, `fix/short-description`, `docs/…`, `chore/…`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) with the bumped SemVer version at the end of the subject, e.g. `feat: add CSV export (v1.4.0)`. Breaking change → major (minor while `0.x`), `feat` → minor, everything else → patch.
-- Keep `VERSION`, `frontend/package.json` and the version badge in sync in the same commit.
+- Keep `VERSION`, `frontend/package.json` (+ `package-lock.json`) and the version badge in sync in the same commit.
+- Run `python -m pytest` and, in `frontend/`, `npm run lint && npm test && npm run build` before committing; CI runs the same checks.
+- Put data logic shared by both apps in `core/`, not in `backend/` or `streamlit_app.py`.
 - Update this README with every change.
 
 <p align="right"><a href="#top">back to top ↑</a></p>
