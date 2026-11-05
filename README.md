@@ -17,9 +17,10 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.1.4-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.1.5-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
+[![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
 
 </div>
 
@@ -84,7 +85,7 @@ You can run either:
 | Backend | Python, FastAPI, Uvicorn, pandas, NumPy, requests, Pydantic |
 | Frontend | Next.js (App Router), React, TypeScript, Tailwind CSS, Plotly.js (`react-plotly.js`), axios, lucide-react |
 | Data sources | [Open-Meteo](https://open-meteo.com/) (archive + forecast), [SoilGrids v2.0 REST API (ISRIC)](https://rest.isric.org/) |
-| CI | GitHub Actions (planned, see [Testing](#testing)) |
+| CI | GitHub Actions (see [Testing](#testing)) |
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -239,7 +240,20 @@ api-app/
 
 ## Testing
 
-There is no automated test suite yet. The planned CI (GitHub Actions) runs `npm ci`, `npm run lint` and `npm run build` for the frontend and a Python compile check for the backend and Streamlit app; it is on hold until the existing ESLint errors (`no-explicit-any` in `page.tsx`) are resolved.
+There is no automated test suite yet. **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
+
+- **Frontend:** `npm ci`, `npm run lint`, `npm run build` (includes the TypeScript check) on Node 22.
+- **Python:** installs both requirements files and runs a compile check on `backend/main.py` and `streamlit_app.py` on Python 3.13.
+
+Run the same checks locally before committing:
+
+```bash
+cd frontend && npm ci && npm run lint && npm run build
+```
+
+```bash
+python -m compileall -q backend/main.py streamlit_app.py
+```
 
 Manual checks:
 
