@@ -1,2 +1,9 @@
 .venv/
 __pycache__/
+node_modules/
+.env
+.env.*
+
+# Local Claude settings and personal instructions
+.claude/
+CLAUDE.md
