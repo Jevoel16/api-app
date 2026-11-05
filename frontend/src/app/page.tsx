@@ -3,7 +3,60 @@
 import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
-import { Play, Download, Table as TableIcon, CloudRain, Map, BarChart3, AlertTriangle } from 'lucide-react';
+import { Play, Download, Table as TableIcon, CloudRain, Map, AlertTriangle } from 'lucide-react';
+import type { Data } from 'plotly.js';
+
+// Shapes returned by the FastAPI /api/integrate endpoint (NaN values arrive as null).
+// Type aliases (not interfaces) so rows stay assignable to Record<string, unknown> for CSV export.
+type Site = { site: string; lat: number; lon: number };
+
+type DailyRecord = {
+  site: string;
+  time: string;
+  month: number;
+  is_forecast: boolean;
+  temperature_2m_mean: number | null;
+  precipitation_sum: number | null;
+  et0_fao_evapotranspiration: number | null;
+  water_balance_mm: number | null;
+};
+
+type SummaryRow = Site & {
+  rain_mm: number | null;
+  et0_mm: number | null;
+  water_balance_mm: number | null;
+  temp_mean_c: number | null;
+  clay: number | null;
+  sand: number | null;
+  silt: number | null;
+  phh2o: number | null;
+  soc: number | null;
+};
+
+type SoilRow = {
+  site: string;
+  property: string;
+  depth: string;
+  mean: number | null;
+  'Q0.05': number | null;
+  'Q0.95': number | null;
+};
+
+type ApiLog = {
+  provider: string;
+  target: string;
+  status: string;
+  cache: string;
+  time_s: number;
+};
+
+type IntegrationResponse = {
+  daily: DailyRecord[];
+  summary: SummaryRow[];
+  soil_long: SoilRow[];
+  active_sites: Site[];
+  api_logs: ApiLog[];
+};
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false, loading: () => <div className="h-64 flex items-center justify-center text-gray-400">Loading Chart...</div> });
 
@@ -24,7 +77,7 @@ export default function Dashboard() {
   const [startDate, setStartDate] = useState("2025-01-01");
   const [endDate, setEndDate] = useState("2025-12-31");
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<IntegrationResponse | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [q2Site, setQ2Site] = useState("");
 
@@ -34,7 +87,7 @@ export default function Dashboard() {
     
     setLoading(true);
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/integrate", {
+      const res = await axios.post<IntegrationResponse>("http://127.0.0.1:8000/api/integrate", {
         sites: selectedSites,
         start_date: startDate,
         end_date: endDate
@@ -58,7 +111,7 @@ export default function Dashboard() {
     );
   };
 
-  const downloadCSV = (dataArr: any[], filename: string) => {
+  const downloadCSV = (dataArr: Record<string, unknown>[], filename: string) => {
     if (!dataArr || dataArr.length === 0) return;
     const keys = Object.keys(dataArr[0]);
     const csvContent = [
@@ -78,7 +131,7 @@ export default function Dashboard() {
 
   const missingSites = useMemo(() => {
     if (!data) return [];
-    return data.summary.filter((s: any) => s.clay == null).map((s: any) => s.site);
+    return data.summary.filter(s => s.clay == null).map(s => s.site);
   }, [data]);
 
 
@@ -87,34 +140,35 @@ export default function Dashboard() {
   // ==========================================
   const renderQ1 = () => {
     if (!data) return null;
-    const lines: any[] = [];
-    
-    data.active_sites.forEach((siteObj: any) => {
+    const lines: Data[] = [];
+
+    data.active_sites.forEach(siteObj => {
       const site = siteObj.site;
-      const siteData = data.daily.filter((d: any) => d.site === site && !d.is_forecast).sort((a:any, b:any) => new Date(a.time).getTime() - new Date(b.time).getTime());
-      
-      const y = siteData.map((d: any, idx: number, arr: any[]) => {
+      const siteData = data.daily.filter(d => d.site === site && !d.is_forecast).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+      // Number() coerces null to 0, matching plain JS arithmetic on null
+      const y = siteData.map((d, idx, arr) => {
         const start = Math.max(0, idx - 6);
         const window = arr.slice(start, idx + 1);
-        return window.reduce((sum, v) => sum + v.temperature_2m_mean, 0) / window.length;
+        return window.reduce((sum, v) => sum + Number(v.temperature_2m_mean), 0) / window.length;
       });
 
       lines.push({
-        x: siteData.map((d: any) => d.time),
+        x: siteData.map(d => d.time),
         y: y,
         mode: 'lines',
         name: site,
       });
 
-      const forecastData = data.daily.filter((d: any) => d.site === site && d.is_forecast).sort((a:any, b:any) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      const forecastData = data.daily.filter(d => d.site === site && d.is_forecast).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
       if (forecastData.length > 0) {
-         const yF = forecastData.map((d: any, idx: number, arr: any[]) => {
+         const yF = forecastData.map((d, idx, arr) => {
             const start = Math.max(0, idx - 6);
             const window = arr.slice(start, idx + 1);
-            return window.reduce((sum, v) => sum + v.temperature_2m_mean, 0) / window.length;
+            return window.reduce((sum, v) => sum + Number(v.temperature_2m_mean), 0) / window.length;
          });
          lines.push({
-            x: forecastData.map((d: any) => d.time),
+            x: forecastData.map(d => d.time),
             y: yF,
             mode: 'lines',
             line: { dash: 'dash', color: COLORS.forecast },
@@ -129,11 +183,11 @@ export default function Dashboard() {
   const renderQ2 = () => {
     if (!data || !q2Site) return null;
     
-    const siteData = data.daily.filter((d: any) => d.site === q2Site && !d.is_forecast);
-    const mRain = Array(12).fill(0);
-    const mEt0 = Array(12).fill(0);
-    
-    siteData.forEach((d: any) => {
+    const siteData = data.daily.filter(d => d.site === q2Site && !d.is_forecast);
+    const mRain: number[] = Array(12).fill(0);
+    const mEt0: number[] = Array(12).fill(0);
+
+    siteData.forEach(d => {
       const mIdx = d.month - 1;
       mRain[mIdx] += d.precipitation_sum || 0;
       mEt0[mIdx] += d.et0_fao_evapotranspiration || 0;
@@ -144,7 +198,7 @@ export default function Dashboard() {
     return (
       <div className="space-y-2">
         <select value={q2Site} onChange={e => setQ2Site(e.target.value)} className="p-2 border rounded font-medium">
-          {data.active_sites.map((s: any) => <option key={s.site} value={s.site}>{s.site}</option>)}
+          {data.active_sites.map(s => <option key={s.site} value={s.site}>{s.site}</option>)}
         </select>
         <Plot 
           data={[
@@ -160,14 +214,14 @@ export default function Dashboard() {
 
   const renderQ3 = () => {
     if (!data) return null;
-    const boxes: any[] = [];
-    data.active_sites.forEach((siteObj: any) => {
+    const boxes: Data[] = [];
+    data.active_sites.forEach(siteObj => {
       const site = siteObj.site;
-      const siteData = data.daily.filter((d: any) => d.site === site && !d.is_forecast);
+      const siteData = data.daily.filter(d => d.site === site && !d.is_forecast);
       boxes.push({
         type: 'box',
-        y: siteData.map((d: any) => d.precipitation_sum),
-        x: siteData.map((d: any) => MONTHS[d.month - 1]),
+        y: siteData.map(d => d.precipitation_sum),
+        x: siteData.map(d => MONTHS[d.month - 1]),
         name: site,
       });
     });
@@ -177,26 +231,34 @@ export default function Dashboard() {
   const renderQ4 = () => {
     if (!data) return null;
     
-    const clay: any = { x: [], y: [], error_y: { type: 'data', array: [], arrayminus: [], visible: true }, name: 'Clay', type: 'bar', marker: {color: COLORS.clay} };
-    const silt: any = { x: [], y: [], name: 'Silt', type: 'bar', marker: {color: COLORS.silt} };
-    const sand: any = { x: [], y: [], name: 'Sand', type: 'bar', marker: {color: COLORS.sand} };
+    const sites: string[] = [];
+    const clayY: number[] = [];
+    const siltY: number[] = [];
+    const sandY: number[] = [];
+    const errPlus: number[] = [];
+    const errMinus: number[] = [];
 
-    data.summary.forEach((s: any) => {
+    data.summary.forEach(s => {
       const sum = (s.clay || 0) + (s.silt || 0) + (s.sand || 0);
       if (sum === 0) return;
-      
-      clay.x.push(s.site); clay.y.push((s.clay / sum) * 100);
-      silt.x.push(s.site); silt.y.push((s.silt / sum) * 100);
-      sand.x.push(s.site); sand.y.push((s.sand / sum) * 100);
-      
-      const clayData = data.soil_long.find((r:any) => r.site === s.site && r.property === "clay" && r.depth === "0-5cm");
+
+      sites.push(s.site);
+      clayY.push((Number(s.clay) / sum) * 100);
+      siltY.push((Number(s.silt) / sum) * 100);
+      sandY.push((Number(s.sand) / sum) * 100);
+
+      const clayData = data.soil_long.find(r => r.site === s.site && r.property === "clay" && r.depth === "0-5cm");
       if (clayData && clayData['Q0.95'] && clayData['Q0.05']) {
-         clay.error_y.array.push( ((clayData['Q0.95'] - clayData['mean']) / sum) * 100 );
-         clay.error_y.arrayminus.push( ((clayData['mean'] - clayData['Q0.05']) / sum) * 100 );
+         errPlus.push( ((clayData['Q0.95'] - Number(clayData['mean'])) / sum) * 100 );
+         errMinus.push( ((Number(clayData['mean']) - clayData['Q0.05']) / sum) * 100 );
       } else {
-         clay.error_y.array.push(0); clay.error_y.arrayminus.push(0);
+         errPlus.push(0); errMinus.push(0);
       }
     });
+
+    const clay: Data = { x: sites, y: clayY, error_y: { type: 'data', array: errPlus, arrayminus: errMinus, visible: true }, name: 'Clay', type: 'bar', marker: {color: COLORS.clay} };
+    const silt: Data = { x: sites, y: siltY, name: 'Silt', type: 'bar', marker: {color: COLORS.silt} };
+    const sand: Data = { x: sites, y: sandY, name: 'Sand', type: 'bar', marker: {color: COLORS.sand} };
 
     return <Plot data={[clay, silt, sand]} layout={{ title: { text: "Q4: Topsoil (0-5cm) Texture Composition w/ Uncertainty" }, barmode: 'stack', yaxis: { title: "Percentage (%)" }, autosize: true, margin: { t: 60 } }} useResizeHandler className="w-full h-96" />;
   };
@@ -207,11 +269,11 @@ export default function Dashboard() {
      const depths = ["0-5cm", "5-15cm", "15-30cm"];
      const properties = ["clay", "silt", "sand"];
      
-     const traces = properties.map(p => {
+     const traces = properties.map((p): Data => {
         return {
            x: depths,
            y: depths.map(d => {
-              const r = data.soil_long.find((row:any) => row.site === site && row.property === p && row.depth === d);
+              const r = data.soil_long.find(row =>row.site === site && row.property === p && row.depth === d);
               return r ? r.mean : 0;
            }),
            name: p.charAt(0).toUpperCase() + p.slice(1),
@@ -226,19 +288,20 @@ export default function Dashboard() {
 
   const renderQ5 = () => {
     if (!data) return null;
-    const sData = data.summary.filter((s:any) => s.clay != null && s.water_balance_mm != null && s.soc != null);
+    // Nulls are filtered out here, so Number() only narrows the type
+    const sData = data.summary.filter(s => s.clay != null && s.water_balance_mm != null && s.soc != null);
     if(sData.length === 0) return <div>Insufficient data</div>;
 
-    const maxSoc = Math.max(...sData.map((s:any) => s.soc));
-    
-    return <Plot 
+    const maxSoc = Math.max(...sData.map(s => Number(s.soc)));
+
+    return <Plot
       data={[{
-        x: sData.map((s:any) => s.clay),
-        y: sData.map((s:any) => s.water_balance_mm),
+        x: sData.map(s => s.clay),
+        y: sData.map(s => s.water_balance_mm),
         mode: 'markers+text',
-        text: sData.map((s:any) => s.site),
+        text: sData.map(s => s.site),
         textposition: 'top center',
-        marker: { size: sData.map((s:any) => 14 + 26 * (s.soc / maxSoc)), color: COLORS.sky },
+        marker: { size: sData.map(s => 14 + 26 * (Number(s.soc) / maxSoc)), color: COLORS.sky },
         name: "Sites"
       }]} 
       layout={{ title: { text: "Q5: Clay Content vs Net Water Balance" }, xaxis: {title: "Clay"}, yaxis: {title: "Water Balance (mm)"}, autosize: true, margin: { t: 60 } }} 
@@ -248,27 +311,27 @@ export default function Dashboard() {
 
   const renderQ6 = () => {
     if (!data) return null;
-    const sData = data.summary.filter((s:any) => s.lat != null && s.lon != null);
+    const sData = data.summary.filter(s => s.lat != null && s.lon != null);
     if(sData.length === 0) return <div>No geo data</div>;
-    
-    const center_lat = sData.reduce((sum:number, s:any) => sum + s.lat, 0) / sData.length;
-    const center_lon = sData.reduce((sum:number, s:any) => sum + s.lon, 0) / sData.length;
-    
-    const maxRain = Math.max(...sData.map((s:any) => s.rain_mm || 1));
+
+    const center_lat = sData.reduce((sum, s) => sum + s.lat, 0) / sData.length;
+    const center_lon = sData.reduce((sum, s) => sum + s.lon, 0) / sData.length;
+
+    const maxRain = Math.max(...sData.map(s => s.rain_mm || 1));
 
     return <Plot
       data={[{
         type: 'scattergeo',
-        lat: sData.map((s:any) => s.lat),
-        lon: sData.map((s:any) => s.lon),
+        lat: sData.map(s => s.lat),
+        lon: sData.map(s => s.lon),
         mode: 'markers',
         marker: {
-          size: sData.map((s:any) => 10 + ((s.rain_mm / maxRain) * 40)),
-          color: sData.map((s:any) => s.soc),
+          size: sData.map(s => 10 + ((Number(s.rain_mm) / maxRain) * 40)),
+          color: sData.map(s => s.soc),
           colorscale: 'Viridis',
           showscale: true
         },
-        text: sData.map((s:any) => `${s.site} (Rain: ${s.rain_mm?.toFixed(1)}, SOC: ${s.soc?.toFixed(1)})`),
+        text: sData.map(s => `${s.site} (Rain: ${s.rain_mm?.toFixed(1)}, SOC: ${s.soc?.toFixed(1)})`),
         hoverinfo: 'text'
       }]}
       layout={{
@@ -419,7 +482,7 @@ export default function Dashboard() {
                              </tr>
                            </thead>
                            <tbody>
-                             {data.api_logs.map((log: any, idx: number) => (
+                             {data.api_logs.map((log, idx) => (
                                <tr key={idx} className="border-b">
                                  <td className="p-2 font-medium">{log.provider}</td>
                                  <td className="p-2">{log.target}</td>
@@ -453,7 +516,7 @@ export default function Dashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.summary.map((s: any) => (
+                        {data.summary.map(s => (
                           <tr key={s.site} className="border-b">
                             <td className="p-2">{s.site}</td>
                             <td className="p-2">{s.rain_mm?.toFixed(1)}</td>
@@ -481,7 +544,7 @@ export default function Dashboard() {
                            </tr>
                          </thead>
                          <tbody>
-                           {data.soil_long.map((s: any, idx: number) => (
+                           {data.soil_long.map((s, idx) => (
                              <tr key={idx} className="border-b">
                                <td className="p-2">{s.site}</td>
                                <td className="p-2">{s.property}</td>

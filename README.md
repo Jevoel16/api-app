@@ -17,7 +17,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.1.3-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.1.4-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 
