@@ -17,7 +17,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.2.1-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.2.2-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -64,6 +64,7 @@ You can run either:
 - Integrates static topsoil data (0–5 cm) with daily weather metrics.
 - Interactive Plotly visualizations: temperature trends, monthly water budgets, geospatial distribution.
 - Handles API rate-limiting and persistent disk caching automatically.
+- Uses the same `core/` HTTP client, parsers and join logic as the backend, so both versions report identical numbers.
 
 ### Advanced version (FastAPI + Next.js)
 - **Depth dimension:** queries SoilGrids at `0-5cm`, `5-15cm` and `15-30cm` to show how soil texture changes down the profile.
@@ -272,7 +273,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors), the integration pipeline and the API (response shape, 422 validation, 502 on upstream failure, CORS).
+They cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors), the integration pipeline, the API (response shape, 422 validation, 502 on upstream failure, CORS) and the Streamlit app (rendered headlessly with Streamlit's `AppTest`).
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
 

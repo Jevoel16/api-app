@@ -1,17 +1,19 @@
-import hashlib
-import json
 import time
 from datetime import date
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import requests
-from requests.adapters import HTTPAdapter
 import streamlit as st
-from urllib3.util.retry import Retry
+
+from core import http
+from core.config import settings
+from core.parsing import parse_soil, parse_weather
+from core.pipeline import integrate, soil_params, soil_wide
+from core.sources import DAILY_VARS, SITES, SOIL_URL, TIMEZONE
+from core.sources import WEATHER_ARCHIVE_URL as WEATHER_URL
 
 # ==============================================================================
 # 1. CONFIGURATION & PAGE SETUP
@@ -24,26 +26,8 @@ st.set_page_config(
 st.title("Integrating APIs: Soil and Weather Data")
 st.write("Inputs, request, response, parsing, joining, analysis — one step at a time.")
 
-CACHE_DIR = Path(__file__).resolve().parent / "cache"  # independent of the launch folder
-SOILGRIDS_PAUSE_S = 12  # Fair-use pause between SoilGrids calls (~5 calls/min)
-
-SITES = pd.DataFrame(
-    [
-        ("Iligan City", 8.200, 124.300),
-        ("Malaybalay", 8.150, 125.130),
-        ("Valencia", 7.900, 125.090),
-        ("Davao (Calinan)", 7.190, 125.460),
-        ("General Santos", 6.150, 125.150),
-    ],
-    columns=["site", "lat", "lon"],
-)
-
-SOIL_URL = "https://rest.isric.org/soilgrids/v2.0/properties/query"
-WEATHER_URL = "https://archive-api.open-meteo.com/v1/archive"
-SOIL_PROPERTIES = ["clay", "sand", "silt", "phh2o", "soc"]
+# The baseline keeps it simple: topsoil only, mean values only
 SOIL_DEPTH = "0-5cm"
-DAILY_VARS = ["temperature_2m_mean", "precipitation_sum", "et0_fao_evapotranspiration"]
-TIMEZONE = "Asia/Manila"
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 COLORS = {
@@ -98,8 +82,7 @@ def build_weather_request(sites_df, start_date, end_date):
 
 def build_soil_request(site, lat, lon):
     """SoilGrids takes one point per request. 'property' repeats once per soil property."""
-    params = [("lat", lat), ("lon", lon), ("depth", SOIL_DEPTH), ("value", "mean")]
-    params += [("property", p) for p in SOIL_PROPERTIES]  # repeated keys
+    params = soil_params(lat, lon, depths=[SOIL_DEPTH], values=["mean"])  # repeated keys
     return {
         "api": "SoilGrids",
         "label": site,
@@ -109,109 +92,15 @@ def build_soil_request(site, lat, lon):
     }
 
 # ==============================================================================
-# 4. HTTP CLIENT & PERSISTENT DISK CACHE
+# 4-6. SEND, PARSE, INTEGRATE
+# The retrying HTTP client + disk cache (core/http.py), the JSON parsers
+# (core/parsing.py) and the join/aggregate step (core/pipeline.py) are shared
+# with the FastAPI backend, so both apps produce the same numbers.
 # ==============================================================================
-
-@st.cache_resource
-def http_session():
-    """Session that retries on rate limiting (429) and server errors (5xx)."""
-    retry = Retry(
-        total=3,
-        backoff_factor=2,
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=("GET",),
-    )
-    s = requests.Session()
-    s.mount("https://", HTTPAdapter(max_retries=retry))
-    s.headers["User-Agent"] = "itd112-lab1/1.0"
-    return s
 
 def send(req):
-    """GET the request and return the response record. Caches successful calls to disk."""
-    key = hashlib.sha1(
-        (req["url"] + json.dumps(req["params"], sort_keys=True, default=str)).encode()
-    ).hexdigest()
-    path = CACHE_DIR / f"{key}.json"
-
-    if path.exists():
-        text = path.read_text(encoding="utf-8")
-        return {"status": None, "from_cache": True, "data": json.loads(text)}
-
-    r = http_session().get(req["url"], params=req["params"], timeout=300)
-    r.raise_for_status()
-    data = r.json()
-    CACHE_DIR.mkdir(exist_ok=True)
-    path.write_text(json.dumps(data), encoding="utf-8")
-    return {"status": r.status_code, "from_cache": False, "data": data}
-
-# ==============================================================================
-# 5. RESPONSE PARSERS
-# ==============================================================================
-
-def parse_weather(data, sites_df):
-    """Each site's 'daily' block holds parallel arrays; each array becomes a column."""
-    results = data if isinstance(data, list) else [data]
-    frames = []
-    for site, res in zip(sites_df["site"], results):
-        df = pd.DataFrame(res["daily"])
-        df.insert(0, "site", site)
-        frames.append(df)
-    return pd.concat(frames, ignore_index=True)
-
-def parse_soil(data, site):
-    """One row per soil property. SoilGrids stores integers; dividing by d_factor gives standard units."""
-    rows = []
-    for layer in data.get("properties", {}).get("layers", []):
-        raw = layer["depths"][0]["values"]["mean"]
-        unit = layer["unit_measure"]
-        rows.append(
-            {
-                "site": site,
-                "property": layer["name"],
-                "raw_mean": raw,
-                "mapped_units": unit.get("mapped_units"),
-                "d_factor": unit["d_factor"],
-                "value": np.nan if raw is None else raw / unit["d_factor"],
-                "target_units": unit.get("target_units"),
-            }
-        )
-    return pd.DataFrame(rows)
-
-def soil_table(soil_long, sites_df):
-    """Pivot to one row per site, one column per property, and attach coordinates."""
-    wide = (
-        soil_long.pivot(index="site", columns="property", values="value")
-        .reindex(columns=SOIL_PROPERTIES)
-        .reset_index()
-    )
-    wide.columns.name = None
-    return sites_df.merge(wide, on="site", how="left")
-
-# ==============================================================================
-# 6. INTEGRATION PIPELINE
-# ==============================================================================
-
-def integrate(weather, soil):
-    """Join daily time series with static soil data, derive water balance, and aggregate."""
-    daily = weather.merge(soil, on="site", how="left")
-    daily["time"] = pd.to_datetime(daily["time"])
-    daily["month"] = daily["time"].dt.month
-    daily["water_balance_mm"] = (
-        daily["precipitation_sum"] - daily["et0_fao_evapotranspiration"]
-    )
-
-    summary = (
-        daily.groupby("site", sort=False)
-        .agg(
-            rain_mm=("precipitation_sum", "sum"),
-            et0_mm=("et0_fao_evapotranspiration", "sum"),
-            water_balance_mm=("water_balance_mm", "sum"),
-            temp_mean_c=("temperature_2m_mean", "mean"),
-        )
-        .reset_index()
-        .merge(soil, on="site")
-    )
-    return daily, summary
+    """GET a built request through the shared cached client."""
+    return http.send(req["url"], req["params"])
 
 # ==============================================================================
 # 7. CHART FUNCTIONS (Q1 - Q6)
@@ -500,12 +389,16 @@ if fetch:
     call_logs = []
     with st.spinner("Fetching data from Open-Meteo and SoilGrids..."):
         # Weather request
-        w_res = send(weather_req)
+        try:
+            w_res = send(weather_req)
+        except http.UpstreamError as exc:
+            st.error(f"Open-Meteo failed: {exc.message}")
+            st.stop()
         call_logs.append({
             "API": "Open-Meteo",
             "Target": "All Sites",
-            "Cache Hit": w_res["from_cache"],
-            "Status": "Cached" if w_res["from_cache"] else str(w_res["status"]),
+            "Cache Hit": w_res.from_cache,
+            "Status": "Cached" if w_res.from_cache else str(w_res.status),
         })
 
         # Soil requests
@@ -513,34 +406,37 @@ if fetch:
         for i, req in enumerate(soil_reqs):
             try:
                 res = send(req)
-                soil_res.append(res)
-                call_logs.append({
-                    "API": "SoilGrids",
-                    "Target": req["label"],
-                    "Cache Hit": res["from_cache"],
-                    "Status": "Cached" if res["from_cache"] else str(res["status"]),
-                })
-            except requests.RequestException as exc:
-                raise RuntimeError(
-                    f"SoilGrids failed for {req['label']}: {exc}. The SoilGrids REST API "
+            except http.UpstreamError as exc:
+                st.error(
+                    f"SoilGrids failed for {req['label']}: {exc.message}. The SoilGrids REST API "
                     "is a beta service and is sometimes paused. Try again later."
-                ) from exc
+                )
+                st.stop()
+            soil_res.append(res)
+            call_logs.append({
+                "API": "SoilGrids",
+                "Target": req["label"],
+                "Cache Hit": res.from_cache,
+                "Status": "Cached" if res.from_cache else str(res.status),
+            })
 
             # Respect rate limit only on actual network calls
-            if not res["from_cache"] and i < len(soil_reqs) - 1:
-                time.sleep(SOILGRIDS_PAUSE_S)
+            if not res.from_cache and i < len(soil_reqs) - 1:
+                time.sleep(settings.soilgrids_pause_s)
 
     # 4. Parse JSON
-    weather_df = parse_weather(w_res["data"], active_sites)
-    soil_audit_dfs = [parse_soil(res["data"], req["label"]) for res, req in zip(soil_res, soil_reqs)]
+    weather_df = parse_weather(w_res.data, active_sites["site"])
+    soil_audit_dfs = [
+        parse_soil(res.data, req["label"], values=["mean"]) for res, req in zip(soil_res, soil_reqs)
+    ]
     soil_long = pd.concat(soil_audit_dfs, ignore_index=True)
-    soil_wide = soil_table(soil_long, active_sites)
 
     # Check for unmapped coordinates/water bodies
-    missing = soil_wide.loc[soil_wide["clay"].isna(), "site"].tolist()
+    topsoil = soil_wide(soil_long, active_sites, depth=SOIL_DEPTH)
+    missing = topsoil.loc[topsoil["clay"].isna(), "site"].tolist()
 
     # 5. Integrate & Derive
-    daily, summary = integrate(weather_df, soil_wide)
+    daily, summary = integrate(weather_df, soil_long, active_sites)
 
     # 6. Save to session state
     st.session_state.daily = daily
