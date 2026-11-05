@@ -30,6 +30,8 @@ app.add_middleware(
 
 CACHE_DIR = Path("cache")
 SOILGRIDS_PAUSE_S = 12
+# Archive and soil data never change, but forecasts do: refetch them after this age
+FORECAST_TTL_S = 3 * 60 * 60
 
 # ==========================================
 # DATA SOURCE CONSTANTS
@@ -63,16 +65,22 @@ def http_session():
     session.mount("https://", HTTPAdapter(max_retries=retries))
     return session
 
-def send(req):
-    """Handles sending requests and persistent disk caching."""
+def send(req, max_age_s=None):
+    """Handles sending requests and persistent disk caching.
+
+    max_age_s: if set, a cached response older than this is refetched.
+    """
     CACHE_DIR.mkdir(exist_ok=True)
-    
+
     j_req = json.dumps(req, sort_keys=True)
     hash_str = hashlib.md5(j_req.encode("utf-8")).hexdigest()
     cache_f = CACHE_DIR / f"{hash_str}.json"
-    
-    if cache_f.exists():
-        with open(cache_f, "r") as f:
+
+    is_fresh = cache_f.exists() and (
+        max_age_s is None or time.time() - cache_f.stat().st_mtime < max_age_s
+    )
+    if is_fresh:
+        with open(cache_f, "r", encoding="utf-8") as f:
             return {"from_cache": True, "data": json.load(f)}
             
     r = http_session().get(req["url"], params=req["params"], timeout=300)
@@ -80,7 +88,7 @@ def send(req):
         raise HTTPException(status_code=r.status_code, detail=f"API Error: {r.text}")
         
     data = r.json()
-    with open(cache_f, "w") as f:
+    with open(cache_f, "w", encoding="utf-8") as f:
         json.dump(data, f)
     return {"from_cache": False, "data": data}
 
@@ -175,7 +183,7 @@ def integrate_data(req: IntegrationRequest):
             "timezone": TIMEZONE,
         }
         t1 = time.time()
-        fore_res = send({"url": WEATHER_FORECAST_URL, "params": w_fore_params})
+        fore_res = send({"url": WEATHER_FORECAST_URL, "params": w_fore_params}, max_age_s=FORECAST_TTL_S)
         api_logs.append({
             "provider": "Open-Meteo (Forecast)",
             "target": site_df.iloc[0]["site"],
