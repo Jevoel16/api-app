@@ -6,7 +6,7 @@
 
 **Weather meets soil: combining Open-Meteo and SoilGrids data for five Mindanao sites.**
 
-![Next.js](https://img.shields.io/badge/Next.js-16.3.8-blue?style=flat)
+![Next.js](https://img.shields.io/badge/Next.js-16.4.5-blue?style=flat)
 ![React](https://img.shields.io/badge/React-19.2.8-blue?style=flat)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=flat)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-blue?style=flat)
@@ -19,7 +19,7 @@
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-1.0.0-green?style=flat)
+![Version](https://img.shields.io/badge/version-1.0.1-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
