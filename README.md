@@ -19,7 +19,7 @@
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.2.3-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.2.4-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -293,8 +293,8 @@ The Python tests cover the parsers (including SoilGrids `d_factor` scaling), the
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
 
-- **Frontend:** `npm ci`, `npm run lint`, `npm run build` (includes the TypeScript check) on Node 22.
-- **Python:** installs both requirements files and runs a compile check on `core/`, `backend/` and `streamlit_app.py` on Python 3.13.
+- **Frontend:** `npm ci`, `npm run lint`, `npm test` (Vitest), `npm run build` (includes the TypeScript check) on Node 22.
+- **Python:** installs `requirements-dev.txt`, runs a compile check on `core/`, `backend/` and `streamlit_app.py`, then `python -m pytest` on Python 3.13. The tests run offline against recorded fixtures.
 
 Run the same checks locally before committing:
 

@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend (lint + build)
+    name: Frontend (lint + test + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,12 +35,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit tests
+        run: npm test
+
       # next build also runs the TypeScript type-check
       - name: Build
         run: npm run build
 
   python:
-    name: Python (install + compile check)
+    name: Python (install + compile check + tests)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,10 +55,14 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             backend/requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt -r backend/requirements.txt
+        run: pip install -r requirements-dev.txt
 
-      # No test suite yet: catch syntax errors in the backend and Streamlit app
       - name: Compile check
         run: python -m compileall -q core backend streamlit_app.py
+
+      # Offline: the tests use recorded API fixtures, never the live APIs
+      - name: Tests
+        run: python -m pytest
