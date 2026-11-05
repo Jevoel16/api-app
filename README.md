@@ -19,7 +19,7 @@
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-1.0.2-green?style=flat)
+![Version](https://img.shields.io/badge/version-1.0.3-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://img.shields.io/github/actions/workflow/status/Jevoel16/api-app/ci.yml?branch=main&label=CI&style=flat)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -38,10 +38,9 @@
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
+- [Documentation](#documentation)
 - [Project structure](#project-structure)
 - [Scripts](#scripts)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
@@ -106,7 +105,7 @@ The first stable release restructures the project around one shared, tested data
 | Frontend | Next.js (App Router), React, TypeScript, Tailwind CSS, Plotly.js (`react-plotly.js`), lucide-react, native `fetch` |
 | Testing | pytest + FastAPI `TestClient` + Streamlit `AppTest` (Python), Vitest (frontend) |
 | Data sources | [Open-Meteo](https://open-meteo.com/) (archive + forecast), [SoilGrids v2.0 REST API (ISRIC)](https://rest.isric.org/) |
-| CI | GitHub Actions (see [Testing](#testing)) |
+| CI | GitHub Actions (see [Contributing](#contributing)) |
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -238,6 +237,48 @@ Invalid input returns **422 Unprocessable Entity** with a message: an empty or u
 
 ---
 
+## Documentation
+
+Screenshots taken from the running app (Windows, 1440 px wide). They live in [`docs/images/`](docs/images).
+
+### Baseline version (Streamlit)
+
+<img src="docs/images/streamlit-start.webp" alt="Streamlit app before a run, with the site and date configuration in the sidebar and the step-by-step guide" width="720" />
+
+*Start screen: choose sites and dates in the sidebar, then click **Run the integration**.*
+
+<img src="docs/images/streamlit-baseline.webp" alt="Streamlit Overview and Audit tab showing site counts, the response status and cache audit table, and a SoilGrids null warning for Valencia" width="720" />
+
+*After a run: overview metrics and the cache audit. The yellow notice appears when SoilGrids has no value at a site's exact point.*
+
+### Advanced version (Next.js dashboard)
+
+<img src="docs/images/dashboard-start.webp" alt="Next.js dashboard empty state with site checkboxes, date pickers and the Run Integration button" width="720" />
+
+*Empty state before the first run.*
+
+<img src="docs/images/dashboard-overview.webp" alt="Overview and Audit tab with summary cards, the API response and cache audit table, the integrated site summary and the soil unit normalization table" width="720" />
+
+*Overview & Audit: every upstream call with its HTTP status and cache state, the joined site summary and the soil unit audit.*
+
+<img src="docs/images/weather-forecast.webp" alt="Weather Forecast tab with the temperature trend chart including forecasts and the monthly rainfall versus evaporative demand chart" width="720" />
+
+*Weather Forecast: 7-day rolling temperature with the 16-day forecast, and monthly rainfall vs reference ET0 per site.*
+
+<img src="docs/images/soil-depths.webp" alt="Soil and Depths tab with the topsoil texture composition chart with uncertainty bars and the depth profile chart" width="720" />
+
+*Soil & Depths: topsoil texture with Q0.05–Q0.95 uncertainty, and how texture changes from 0–5 cm to 15–30 cm.*
+
+### Backend API
+
+<img src="docs/images/api-docs.webp" alt="FastAPI Swagger UI listing GET /api/health, GET /api/sites and POST /api/integrate with their schemas" width="720" />
+
+*Interactive OpenAPI docs at http://127.0.0.1:8000/docs.*
+
+<p align="right"><a href="#top">back to top ↑</a></p>
+
+---
+
 ## Project structure
 
 ```text
@@ -252,6 +293,7 @@ api-app/
 │   ├── parsing.py          # Open-Meteo / SoilGrids JSON → DataFrames
 │   └── pipeline.py         # Fetch, join and summarise
 ├── tests/                  # pytest suite + trimmed API fixtures
+├── docs/images/            # README screenshots (WebP)
 ├── cache/                  # Disk cache (JSON, gitignored)
 ├── requirements-dev.txt    # Test dependencies (pytest, httpx)
 ├── pyproject.toml          # pytest configuration
@@ -290,71 +332,8 @@ api-app/
 | `npm run start` | `frontend/` | Serve the production build |
 | `npm run lint` | `frontend/` | Run ESLint |
 | `npm test` | `frontend/` | Run the Vitest unit tests |
-| `python -m pytest` | root | Run the Python test suite |
-
-<p align="right"><a href="#top">back to top ↑</a></p>
-
----
-
-## Testing
-
-Python tests live in [`tests/`](tests) and run offline against trimmed real API responses in `tests/fixtures/`:
-
-```bash
-pip install -r requirements-dev.txt
-python -m pytest
-```
-
-Frontend unit tests (Vitest) cover the API client and its error messages, CSV escaping and the chart statistics helpers:
-
-```bash
-cd frontend && npm test
-```
-
-The Python tests cover the parsers (including SoilGrids `d_factor` scaling), the disk cache (hit, miss, TTL expiry, errors), the integration pipeline, the API (response shape, 422 validation, 502 on upstream failure, CORS) and the Streamlit app (rendered headlessly with Streamlit's `AppTest`).
-
-**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request to `main`:
-
-- **Frontend:** `npm ci`, `npm run lint`, `npm test` (Vitest), `npm run build` (includes the TypeScript check) on Node 22.
-- **Python:** installs `requirements-dev.txt`, runs a compile check on `core/`, `backend/` and `streamlit_app.py`, then `python -m pytest` on Python 3.13. The tests run offline against recorded fixtures.
-
-Run the same checks locally before committing:
-
-```bash
-cd frontend && npm ci && npm run lint && npm test && npm run build
-```
-
-```bash
-python -m compileall -q core backend streamlit_app.py
-```
-
-Manual checks:
-
-1. `streamlit run streamlit_app.py` loads and every step renders for the default sites.
-2. Backend starts and http://127.0.0.1:8000/docs lists `/api/health`, `/api/sites` and `/api/integrate`.
-3. The `curl` request above returns JSON with all five keys.
-4. Frontend at http://localhost:3000 renders all charts for the selected sites.
-5. Re-running the same request shows **Cached** in the API log.
-6. CSV export downloads a file with data.
-7. `npm run build` in `frontend/` succeeds.
-
-<p align="right"><a href="#top">back to top ↑</a></p>
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-| --- | --- |
-| "Cannot reach the backend" banner | Make sure the backend is running on `127.0.0.1:8000` (or set `NEXT_PUBLIC_API_URL`). If the frontend runs on another origin or port, add it to `CORS_ORIGINS`. Reload the page so the site list loads. |
-| Backend returns 422 | Check the message: site names must match exactly, dates must be `YYYY-MM-DD`, start ≤ end, and end not in the future. |
-| First run is very slow | Live SoilGrids calls are spaced 12 s apart to respect fair use; later runs use the cache. |
-| HTTP 429 / 5xx from an API | Requests retry automatically with backoff; wait and try again. |
-| Stale or odd data | Forecasts refresh on their own after 3 hours. For anything else, delete the JSON files in `cache/` and rerun. |
-| Backend returns 502 | Open-Meteo or SoilGrids failed after retries (SoilGrids is a beta service and is sometimes paused). The message says which; try again later. |
-| `ModuleNotFoundError: core` / `backend` | Start uvicorn from the repo root, not from `backend/`. |
-| `uvicorn` / `streamlit` not found | Activate the virtual environment and reinstall the requirements. |
-| Port already in use | Stop the other process on 3000 / 8000 / 8501, or pass another port (`--port`, `-p`). |
+| `python -m pytest` | root | Run the Python test suite (offline, against recorded fixtures in `tests/fixtures/`) |
+| `python -m compileall -q core backend streamlit_app.py` | root | Compile check, as run in CI |
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
@@ -365,7 +344,9 @@ Manual checks:
 - **Branches:** `feat/short-description`, `fix/short-description`, `docs/…`, `chore/…`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) with the bumped SemVer version at the end of the subject, e.g. `feat: add CSV export (v1.4.0)`. Breaking change → major (minor while `0.x`), `feat` → minor, everything else → patch.
 - Keep `VERSION`, `frontend/package.json` (+ `package-lock.json`) and the version badge in sync in the same commit.
-- Run `python -m pytest` and, in `frontend/`, `npm run lint && npm test && npm run build` before committing; CI runs the same checks.
+- Run `python -m pytest` and, in `frontend/`, `npm run lint && npm test && npm run build` before committing.
+- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the same checks on every push and pull request to `main`: frontend `npm ci`, lint, Vitest and build on Node 22; Python compile check and `pytest` on Python 3.13.
+- Retake the screenshots in `docs/images/` when a screen changes.
 - Put data logic shared by both apps in `core/`, not in `backend/` or `streamlit_app.py`.
 - Update this README with every change.
 
