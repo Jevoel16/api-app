@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import time
 from datetime import date
 from pathlib import Path
@@ -19,13 +20,19 @@ from pydantic import BaseModel, Field, model_validator
 # ==========================================
 app = FastAPI(title="ITD112 API Integration Backend")
 
-# Allow the Next.js frontend (running on a different port) to access this backend
+# Allow only the Next.js frontend (running on a different port) to call this backend.
+# Override with a comma-separated CORS_ORIGINS env var if it runs elsewhere.
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,  # the frontend sends no cookies
+    allow_methods=["POST"],
+    allow_headers=["Content-Type"],
 )
 
 # Anchor to this file so the cache lands in backend/cache wherever Uvicorn starts
