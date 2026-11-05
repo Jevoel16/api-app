@@ -24,7 +24,7 @@ st.set_page_config(
 st.title("Integrating APIs: Soil and Weather Data")
 st.write("Inputs, request, response, parsing, joining, analysis — one step at a time.")
 
-CACHE_DIR = Path("cache")
+CACHE_DIR = Path(__file__).resolve().parent / "cache"  # independent of the launch folder
 SOILGRIDS_PAUSE_S = 12  # Fair-use pause between SoilGrids calls (~5 calls/min)
 
 SITES = pd.DataFrame(

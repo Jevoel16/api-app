@@ -28,7 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CACHE_DIR = Path("cache")
+# Anchor to this file so the cache lands in backend/cache wherever Uvicorn starts
+CACHE_DIR = Path(__file__).resolve().parent / "cache"
 SOILGRIDS_PAUSE_S = 12
 # Archive and soil data never change, but forecasts do: refetch them after this age
 FORECAST_TTL_S = 3 * 60 * 60

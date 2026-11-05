@@ -17,7 +17,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13-blue?style=flat)
 ![Node.js](https://img.shields.io/badge/Node.js-22-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-0.1.7-green?style=flat)
+![Version](https://img.shields.io/badge/version-0.1.8-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -139,7 +139,7 @@ No environment variables or API keys are needed: both Open-Meteo and SoilGrids a
 
 | Setting | Where | Value |
 | --- | --- | --- |
-| Disk cache | `cache/` (Streamlit), `backend/cache/` (FastAPI, relative to where Uvicorn runs) | One JSON file per unique request |
+| Disk cache | `cache/` (Streamlit), `backend/cache/` (FastAPI), both next to their app file and gitignored | One JSON file per unique request |
 | Forecast cache lifetime | `FORECAST_TTL_S` in `backend/main.py` | 3 hours (archive and soil responses never expire) |
 | SoilGrids fair-use pause | `SOILGRIDS_PAUSE_S` in `streamlit_app.py` and `backend/main.py` | 12 s between live SoilGrids calls |
 | Timezone | `TIMEZONE` in `backend/main.py` | `Asia/Manila` |
@@ -208,11 +208,11 @@ api-app/
 ├── streamlit_app.py        # Baseline Streamlit app
 ├── requirements.txt        # Baseline Python dependencies
 ├── .streamlit/config.toml  # Streamlit theme
-├── cache/                  # Baseline disk cache (JSON)
+├── cache/                  # Baseline disk cache (JSON, gitignored)
 ├── backend/
 │   ├── main.py             # FastAPI app: fetch, parse, join, summarise
 │   ├── requirements.txt    # Backend Python dependencies
-│   └── cache/              # Backend disk cache (JSON)
+│   └── cache/              # Backend disk cache (JSON, gitignored)
 ├── frontend/
 │   ├── src/app/            # Next.js App Router pages, layout, styles
 │   ├── public/             # Static assets
