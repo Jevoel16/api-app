@@ -19,7 +19,7 @@
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-1.0.3-green?style=flat)
+![Version](https://img.shields.io/badge/version-1.0.4-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://img.shields.io/github/actions/workflow/status/Jevoel16/api-app/ci.yml?branch=main&label=CI&style=flat)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -239,41 +239,31 @@ Invalid input returns **422 Unprocessable Entity** with a message: an empty or u
 
 ## Documentation
 
-Screenshots taken from the running app (Windows, 1440 px wide). They live in [`docs/images/`](docs/images).
+Screenshots from the running apps (1440 px wide). Click a thumbnail for the full-size image; files live in [`docs/images/`](docs/images). The Streamlit notice appears when SoilGrids has no value at a site's exact point.
 
-### Baseline version (Streamlit)
+<details>
+<summary><b>Screenshots</b></summary>
+<br>
 
-<img src="docs/images/streamlit-start.webp" alt="Streamlit app before a run, with the site and date configuration in the sidebar and the step-by-step guide" width="720" />
+<table>
+  <tr>
+    <td align="center"><b>Streamlit: start</b><br><a href="docs/images/streamlit-start.webp"><img src="docs/images/streamlit-start.webp" width="260" alt="Streamlit app before a run, with site and date configuration in the sidebar"></a></td>
+    <td align="center"><b>Streamlit: after a run</b><br><a href="docs/images/streamlit-baseline.webp"><img src="docs/images/streamlit-baseline.webp" width="260" alt="Streamlit Overview and Audit tab with site counts, the cache audit table and a SoilGrids null notice for Valencia"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Dashboard: start</b><br><a href="docs/images/dashboard-start.webp"><img src="docs/images/dashboard-start.webp" width="260" alt="Next.js dashboard empty state with site checkboxes, date pickers and the Run Integration button"></a></td>
+    <td align="center"><b>Overview &amp; Audit</b><br><a href="docs/images/dashboard-overview.webp"><img src="docs/images/dashboard-overview.webp" width="260" alt="Overview and Audit tab with summary cards, the API status and cache audit, the site summary and the soil unit audit"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Weather Forecast</b><br><a href="docs/images/weather-forecast.webp"><img src="docs/images/weather-forecast.webp" width="260" alt="Weather Forecast tab with the temperature trend including forecasts and monthly rainfall versus evaporative demand"></a></td>
+    <td align="center"><b>Soil &amp; Depths</b><br><a href="docs/images/soil-depths.webp"><img src="docs/images/soil-depths.webp" width="260" alt="Soil and Depths tab with topsoil texture and uncertainty bars, and the depth profile chart"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>API docs (Swagger UI)</b><br><a href="docs/images/api-docs.webp"><img src="docs/images/api-docs.webp" width="260" alt="FastAPI Swagger UI listing GET /api/health, GET /api/sites and POST /api/integrate"></a></td>
+  </tr>
+</table>
 
-*Start screen: choose sites and dates in the sidebar, then click **Run the integration**.*
-
-<img src="docs/images/streamlit-baseline.webp" alt="Streamlit Overview and Audit tab showing site counts, the response status and cache audit table, and a SoilGrids null warning for Valencia" width="720" />
-
-*After a run: overview metrics and the cache audit. The yellow notice appears when SoilGrids has no value at a site's exact point.*
-
-### Advanced version (Next.js dashboard)
-
-<img src="docs/images/dashboard-start.webp" alt="Next.js dashboard empty state with site checkboxes, date pickers and the Run Integration button" width="720" />
-
-*Empty state before the first run.*
-
-<img src="docs/images/dashboard-overview.webp" alt="Overview and Audit tab with summary cards, the API response and cache audit table, the integrated site summary and the soil unit normalization table" width="720" />
-
-*Overview & Audit: every upstream call with its HTTP status and cache state, the joined site summary and the soil unit audit.*
-
-<img src="docs/images/weather-forecast.webp" alt="Weather Forecast tab with the temperature trend chart including forecasts and the monthly rainfall versus evaporative demand chart" width="720" />
-
-*Weather Forecast: 7-day rolling temperature with the 16-day forecast, and monthly rainfall vs reference ET0 per site.*
-
-<img src="docs/images/soil-depths.webp" alt="Soil and Depths tab with the topsoil texture composition chart with uncertainty bars and the depth profile chart" width="720" />
-
-*Soil & Depths: topsoil texture with Q0.05–Q0.95 uncertainty, and how texture changes from 0–5 cm to 15–30 cm.*
-
-### Backend API
-
-<img src="docs/images/api-docs.webp" alt="FastAPI Swagger UI listing GET /api/health, GET /api/sites and POST /api/integrate with their schemas" width="720" />
-
-*Interactive OpenAPI docs at http://127.0.0.1:8000/docs.*
+</details>
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 
