@@ -19,7 +19,7 @@
 ![pytest](https://img.shields.io/badge/pytest-9.2.0-blue?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-5.1.0-blue?style=flat)
 
-![Version](https://img.shields.io/badge/version-1.0.4-green?style=flat)
+![Version](https://img.shields.io/badge/version-1.0.5-green?style=flat)
 ![License](https://img.shields.io/badge/license-Sprucetrap_SAL_1.0-orange?style=flat)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat)
 [![CI](https://img.shields.io/github/actions/workflow/status/Jevoel16/api-app/ci.yml?branch=main&label=CI&style=flat)](https://github.com/Jevoel16/api-app/actions/workflows/ci.yml)
@@ -247,19 +247,20 @@ Screenshots from the running apps (1440 px wide). Click a thumbnail for the full
 
 <table>
   <tr>
-    <td align="center"><b>Streamlit: start</b><br><a href="docs/images/streamlit-start.webp"><img src="docs/images/streamlit-start.webp" width="260" alt="Streamlit app before a run, with site and date configuration in the sidebar"></a></td>
-    <td align="center"><b>Streamlit: after a run</b><br><a href="docs/images/streamlit-baseline.webp"><img src="docs/images/streamlit-baseline.webp" width="260" alt="Streamlit Overview and Audit tab with site counts, the cache audit table and a SoilGrids null notice for Valencia"></a></td>
+    <td width="50%" align="center"><b>Streamlit: start</b><br><a href="docs/images/streamlit-start.webp"><img src="docs/images/streamlit-start.webp" width="100%" alt="Streamlit app before a run, with site and date configuration in the sidebar"></a></td>
+    <td width="50%" align="center"><b>Streamlit: after a run</b><br><a href="docs/images/streamlit-baseline.webp"><img src="docs/images/streamlit-baseline.webp" width="100%" alt="Streamlit Overview and Audit tab with site counts, the cache audit table and a SoilGrids null notice for Valencia"></a></td>
   </tr>
   <tr>
-    <td align="center"><b>Dashboard: start</b><br><a href="docs/images/dashboard-start.webp"><img src="docs/images/dashboard-start.webp" width="260" alt="Next.js dashboard empty state with site checkboxes, date pickers and the Run Integration button"></a></td>
-    <td align="center"><b>Overview &amp; Audit</b><br><a href="docs/images/dashboard-overview.webp"><img src="docs/images/dashboard-overview.webp" width="260" alt="Overview and Audit tab with summary cards, the API status and cache audit, the site summary and the soil unit audit"></a></td>
+    <td width="50%" align="center"><b>Dashboard: start</b><br><a href="docs/images/dashboard-start.webp"><img src="docs/images/dashboard-start.webp" width="100%" alt="Next.js dashboard empty state with site checkboxes, date pickers and the Run Integration button"></a></td>
+    <td width="50%" align="center"><b>Overview &amp; Audit</b><br><a href="docs/images/dashboard-overview.webp"><img src="docs/images/dashboard-overview.webp" width="100%" alt="Overview and Audit tab with summary cards, the API status and cache audit, the site summary and the soil unit audit"></a></td>
   </tr>
   <tr>
-    <td align="center"><b>Weather Forecast</b><br><a href="docs/images/weather-forecast.webp"><img src="docs/images/weather-forecast.webp" width="260" alt="Weather Forecast tab with the temperature trend including forecasts and monthly rainfall versus evaporative demand"></a></td>
-    <td align="center"><b>Soil &amp; Depths</b><br><a href="docs/images/soil-depths.webp"><img src="docs/images/soil-depths.webp" width="260" alt="Soil and Depths tab with topsoil texture and uncertainty bars, and the depth profile chart"></a></td>
+    <td width="50%" align="center"><b>Weather Forecast</b><br><a href="docs/images/weather-forecast.webp"><img src="docs/images/weather-forecast.webp" width="100%" alt="Weather Forecast tab with the temperature trend including forecasts and monthly rainfall versus evaporative demand"></a></td>
+    <td width="50%" align="center"><b>Soil &amp; Depths</b><br><a href="docs/images/soil-depths.webp"><img src="docs/images/soil-depths.webp" width="100%" alt="Soil and Depths tab with topsoil texture and uncertainty bars, and the depth profile chart"></a></td>
   </tr>
   <tr>
-    <td align="center"><b>API docs (Swagger UI)</b><br><a href="docs/images/api-docs.webp"><img src="docs/images/api-docs.webp" width="260" alt="FastAPI Swagger UI listing GET /api/health, GET /api/sites and POST /api/integrate"></a></td>
+    <td width="50%" align="center"><b>API docs (Swagger UI)</b><br><a href="docs/images/api-docs.webp"><img src="docs/images/api-docs.webp" width="100%" alt="FastAPI Swagger UI listing GET /api/health, GET /api/sites and POST /api/integrate"></a></td>
+    <td width="50%"></td>
   </tr>
 </table>
 
